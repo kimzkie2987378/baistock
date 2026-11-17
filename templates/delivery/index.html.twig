@@ -1,0 +1,306 @@
+{% extends 'layout/dashboard_layout.html.twig' %}
+
+{% block title %}Deliveries Management - BaiStock Storage Management{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold font-display text-slate-800 tracking-tight">Supplier Deliveries</h1>
+            <p class="text-slate-500 text-sm">Click any delivery row to view full info and notes. Delivery items are displayed below.</p>
+        </div>
+
+        <a href="{{ path('app_delivery_new') }}" class="py-2.5 px-4 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-purple-600/30 transition-all self-start sm:self-auto">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>New Delivery Order</span>
+        </a>
+    </div>
+
+    <!-- Deliveries Table Card -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead>
+                    <tr class="bg-slate-50/80 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <th class="py-3.5 px-6">Tracking #</th>
+                        <th class="py-3.5 px-4">Supplier</th>
+                        <th class="py-3.5 px-4">Delivery Items</th>
+                        <th class="py-3.5 px-4 text-right">Total Cost</th>
+                        <th class="py-3.5 px-4 text-center">Status</th>
+                        <th class="py-3.5 px-4">Received Date</th>
+                        <th class="py-3.5 px-6 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                    {% for d in deliveries %}
+                        <tr class="hover:bg-purple-50/40 transition-colors cursor-pointer group" onclick="openDeliveryInfoModal({{ d.id }})">
+                            <!-- Tracking # -->
+                            <td class="py-4 px-6 font-mono font-bold text-purple-700 whitespace-nowrap group-hover:underline">
+                                {{ d.trackingNumber }}
+                            </td>
+
+                            <!-- Supplier (Only Supplier Name, NO Notes) -->
+                            <td class="py-4 px-4 font-semibold text-slate-800">
+                                <span class="font-bold text-slate-800 text-sm">{{ d.supplier }}</span>
+                            </td>
+
+                            <!-- Delivery Items (ONLY Products and Quantities, NO Notes) -->
+                            <td class="py-4 px-4">
+                                {% if d.items is not empty %}
+                                    <div class="flex flex-wrap gap-1.5">
+                                        {% for item in d.items %}
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50/90 border border-purple-100 text-purple-900 rounded-lg text-[11px] font-medium">
+                                                <i data-lucide="package" class="w-3 h-3 text-purple-600"></i>
+                                                <span class="font-bold">{{ item.productName }}</span>
+                                                <span class="bg-white px-1.5 py-0.5 rounded text-[10px] font-mono text-purple-700 font-bold border border-purple-200">+{{ item.quantity }}</span>
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <span class="text-slate-400 italic">No products listed</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Total Cost -->
+                            <td class="py-4 px-4 text-right font-bold text-slate-900 whitespace-nowrap">
+                                ₱ {{ d.totalCost|number_format(2, '.', ',') }}
+                            </td>
+
+                            <!-- Status -->
+                            <td class="py-4 px-4 text-center whitespace-nowrap">
+                                {% if d.status == 'Delivered' %}
+                                    <span class="inline-flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                                        <i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-600"></i> Delivered
+                                    </span>
+                                {% elseif d.status == 'In Transit' %}
+                                    <span class="inline-flex items-center gap-1 font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full">
+                                        <i data-lucide="truck" class="w-3 h-3 text-blue-600"></i> In Transit
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center gap-1 font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                                        <i data-lucide="clock" class="w-3 h-3 text-amber-600"></i> Pending
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Received Date -->
+                            <td class="py-4 px-4 text-slate-500 whitespace-nowrap">
+                                {{ d.receivedDate ? d.receivedDate|date('M d, Y h:i A') : 'Not yet received' }}
+                            </td>
+
+                            <!-- Actions -->
+                            <td class="py-4 px-6 text-right whitespace-nowrap">
+                                <div class="inline-flex items-center gap-2">
+                                    <button type="button" onclick="event.stopPropagation(); openDeliveryInfoModal({{ d.id }})" 
+                                            class="py-1 px-2.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition-colors" title="View Full Details & Notes">
+                                        <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                                        <span>Details</span>
+                                    </button>
+
+                                    {% if d.status != 'Delivered' and not d.isReceived %}
+                                        <form method="post" action="{{ path('app_delivery_receive', {'id': d.id}) }}" class="inline" onclick="event.stopPropagation()" onsubmit="return confirm('Mark delivery #{{ d.trackingNumber }} as Received? Products will be automatically added to inventory stock.');">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('receive_delivery_' ~ d.id) }}">
+                                            <button type="submit" class="py-1 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold inline-flex items-center gap-1 shadow-sm transition-all">
+                                                <i data-lucide="package-check" class="w-3.5 h-3.5"></i>
+                                                <span>Mark Received</span>
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                                            <i data-lucide="check" class="w-3 h-3 text-emerald-600"></i> Received
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="py-12 text-center text-slate-400">
+                                <div class="flex flex-col items-center justify-center">
+                                    <i data-lucide="truck" class="w-10 h-10 text-slate-300 mb-2"></i>
+                                    <p class="font-medium text-slate-600">No deliveries scheduled.</p>
+                                    <p class="text-xs text-slate-400 mt-1">Click "New Delivery Order" to log an incoming supplier shipment.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- DELIVERY FULL INFO MODALS (ONE PER DELIVERY) -->
+{% for d in deliveries %}
+<div id="delivery-modal-{{ d.id }}" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 p-6 md:p-8 animate-fadeIn" onclick="event.stopPropagation()">
+        
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-purple-100 text-[#7C3AED] flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <i data-lucide="truck" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold font-display text-lg text-slate-900">Delivery Details</h3>
+                    <p class="font-mono text-xs text-purple-700 font-bold">#{{ d.trackingNumber }}</p>
+                </div>
+            </div>
+
+            <button type="button" onclick="closeDeliveryInfoModal({{ d.id }})" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="py-5 space-y-5">
+            <!-- Key Details Grid -->
+            <div class="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-xs">
+                <div>
+                    <span class="text-slate-400 block uppercase font-bold text-[10px]">Supplier Name</span>
+                    <span class="font-bold text-slate-800 text-sm">{{ d.supplier }}</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block uppercase font-bold text-[10px]">Delivery Status</span>
+                    {% if d.status == 'Delivered' %}
+                        <span class="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full text-[11px] mt-0.5">
+                            ✓ Delivered / Stock Added
+                        </span>
+                    {% elseif d.status == 'In Transit' %}
+                        <span class="inline-flex items-center gap-1 font-bold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-full text-[11px] mt-0.5">
+                            In Transit
+                        </span>
+                    {% else %}
+                        <span class="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full text-[11px] mt-0.5">
+                            Pending
+                        </span>
+                    {% endif %}
+                </div>
+                <div>
+                    <span class="text-slate-400 block uppercase font-bold text-[10px]">Expected Date</span>
+                    <span class="font-semibold text-slate-700">{{ d.expectedDate ? d.expectedDate|date('M d, Y') : 'N/A' }}</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block uppercase font-bold text-[10px]">Received Date</span>
+                    <span class="font-semibold text-slate-700">{{ d.receivedDate ? d.receivedDate|date('M d, Y h:i A') : 'Not yet received' }}</span>
+                </div>
+                <div class="col-span-2 pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                    <span class="text-slate-500 font-bold uppercase text-[11px]">Total Invoice Cost:</span>
+                    <span class="text-lg font-extrabold text-purple-900 font-display">₱ {{ d.totalCost|number_format(2, '.', ',') }}</span>
+                </div>
+            </div>
+
+            <!-- Delivery Items Breakdown -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <i data-lucide="package" class="w-4 h-4 text-purple-600"></i>
+                    <span>Delivery Items ({{ d.items|length }})</span>
+                </h4>
+
+                <div class="border border-slate-200 rounded-2xl overflow-hidden bg-white">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold">
+                            <tr>
+                                <th class="py-2.5 px-3">Product Name</th>
+                                <th class="py-2.5 px-2 text-center">Qty</th>
+                                <th class="py-2.5 px-3 text-right">Unit Cost</th>
+                                <th class="py-2.5 px-3 text-right">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for item in d.items %}
+                                <tr>
+                                    <td class="py-2.5 px-3 font-semibold text-slate-800">{{ item.productName }}</td>
+                                    <td class="py-2.5 px-2 text-center font-bold text-purple-700">+{{ item.quantity }}</td>
+                                    <td class="py-2.5 px-3 text-right text-slate-600">₱ {{ item.unitCost|number_format(2, '.', ',') }}</td>
+                                    <td class="py-2.5 px-3 text-right font-bold text-slate-900">₱ {{ item.subtotal|number_format(2, '.', ',') }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="py-4 text-center text-slate-400 italic">No itemized products recorded for this delivery.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Delivery Notes (ONLY SHOWN HERE WHEN CLICKED) -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <i data-lucide="file-text" class="w-4 h-4 text-amber-600"></i>
+                    <span>Delivery Notes & Remarks</span>
+                </h4>
+                
+                <div class="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-4 text-xs">
+                    {% if d.notes %}
+                        <p class="text-slate-800 whitespace-pre-wrap leading-relaxed font-medium">{{ d.notes }}</p>
+                    {% else %}
+                        <p class="text-slate-400 italic">No delivery notes or remarks entered for this shipment.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+            <button type="button" onclick="closeDeliveryInfoModal({{ d.id }})" class="py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors">
+                Close
+            </button>
+
+            {% if d.status != 'Delivered' and not d.isReceived %}
+                <form method="post" action="{{ path('app_delivery_receive', {'id': d.id}) }}" onsubmit="return confirm('Mark delivery #{{ d.trackingNumber }} as Received? Products will be automatically added to inventory stock.');">
+                    <input type="hidden" name="_token" value="{{ csrf_token('receive_delivery_' ~ d.id) }}">
+                    <button type="submit" class="py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-md shadow-emerald-600/30 transition-all">
+                        <i data-lucide="package-check" class="w-4 h-4"></i>
+                        <span>Mark Received & Add Stock</span>
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+    function openDeliveryInfoModal(id) {
+        const modal = document.getElementById('delivery-modal-' + id);
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            lucide.createIcons();
+        }
+    }
+
+    function closeDeliveryInfoModal(id) {
+        const modal = document.getElementById('delivery-modal-' + id);
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+    }
+
+    // Close on backdrop click
+    document.querySelectorAll('[id^="delivery-modal-"]').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = '';
+            }
+        });
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('[id^="delivery-modal-"]').forEach(modal => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+            document.body.style.overflow = '';
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends 'layout/dashboard_layout.html.twig' %}
+
+{% block title %}Record Stock In - BaiStock Storage Management{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto space-y-6">
+    <div class="flex items-center gap-3">
+        <a href="{{ path('app_inventory_index') }}" class="p-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-600 transition-colors">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        </a>
+        <div>
+            <h1 class="text-2xl font-bold font-display text-slate-800 tracking-tight">Record Stock-In</h1>
+            <p class="text-slate-500 text-sm">Add incoming stock inventory from delivery or supplier.</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 md:p-8">
+        <form action="{{ path('app_inventory_stock_in') }}" method="post" class="space-y-5">
+            <!-- Product Selector -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Select Product *</label>
+                <select name="product_id" id="product_id" required class="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:bg-white focus:outline-none focus:border-purple-600 font-medium">
+                    <option value="">-- Choose Product --</option>
+                    {% for p in products %}
+                        <option value="{{ p.id }}" {{ selected_product_id == p.id ? 'selected' : '' }} data-current="{{ p.quantity }}">
+                            {{ p.name }} ({{ p.sku }}) — Current: {{ p.quantity }} units
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Quantity to add -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Quantity to Add (Units) *</label>
+                <div class="relative">
+                    <input type="number" name="quantity" min="1" value="10" required
+                           class="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-lg font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-purple-600">
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">This quantity will be immediately added to the current on-hand stock.</p>
+            </div>
+
+            <!-- Reference / Supplier / Batch Note -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Batch / Delivery Reference</label>
+                <input type="text" name="reference" placeholder="e.g. San Miguel Delivery #DEL-2026-089"
+                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:bg-white focus:outline-none focus:border-purple-600">
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <a href="{{ path('app_inventory_index') }}" class="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition-colors">
+                    Cancel
+                </a>
+                <button type="submit" class="py-2.5 px-6 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl text-sm font-semibold shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>Confirm Stock-In</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

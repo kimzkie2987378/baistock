@@ -1,0 +1,37 @@
+services:
+  database:
+    image: mysql:8.0
+    container_name: baistock_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: baistock_db
+      MYSQL_USER: baistock_user
+      MYSQL_PASSWORD: baistock_pass
+    ports:
+      - "3309:3306"
+    volumes:
+      - baistock_db_data:/var/lib/mysql
+    networks:
+      - baistock_network
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: baistock_phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: database
+      PMA_PORT: 3306
+    ports:
+      - "8082:80"
+    depends_on:
+      - database
+    networks:
+      - baistock_network
+
+volumes:
+  baistock_db_data:
+
+networks:
+  baistock_network:
+    driver: bridge

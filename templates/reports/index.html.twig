@@ -1,0 +1,156 @@
+{% extends 'layout/dashboard_layout.html.twig' %}
+
+{% block title %}Reports & Analytics - BaiStock Storage Management{% endblock %}
+
+{% block stylesheets %}
+<style>
+    @media print {
+        aside, header, .no-print {
+            display: none !important;
+        }
+        main {
+            padding: 0 !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header banner -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 no-print">
+        <div>
+            <h1 class="text-2xl font-bold font-display text-slate-800 tracking-tight">Reports & Business Insights</h1>
+            <p class="text-slate-500 text-sm">Review store revenue, inventory asset valuation, and product sales velocity.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button type="button" onclick="window.print()" class="py-2.5 px-4 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-sm transition-all">
+                <i data-lucide="printer" class="w-4 h-4 text-slate-500"></i>
+                <span>Print Report</span>
+            </button>
+            <a href="{{ path('app_product_export_csv') }}" class="py-2.5 px-4 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-purple-600/30 transition-all">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span>Export Inventory CSV</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 4 High Level Stat Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Store Revenue</span>
+            <div class="text-2xl font-extrabold text-slate-900 mt-1 font-display">
+                ₱ {{ total_revenue|number_format(2, '.', ',') }}
+            </div>
+            <p class="text-[11px] text-emerald-600 mt-1">Accumulated sales transactions</p>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Inventory Valuation</span>
+            <div class="text-2xl font-extrabold text-purple-700 mt-1 font-display">
+                ₱ {{ inventory_valuation|number_format(2, '.', ',') }}
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Total retail value of current stock</p>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Stock on Hand</span>
+            <div class="text-2xl font-extrabold text-slate-900 mt-1 font-display">
+                {{ total_units|number_format(0, '.', ',') }} units
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Across {{ total_products }} active items</p>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Low Stock Reorders</span>
+            <div class="text-2xl font-extrabold text-rose-600 mt-1 font-display">
+                {{ low_stock_count }} items
+            </div>
+            <p class="text-[11px] text-rose-500 mt-1">Requiring immediate restocking</p>
+        </div>
+    </div>
+
+    <!-- Top Selling Products & Low Stock Reorder Table -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Top Selling Products -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+            <div class="flex items-center gap-2.5 mb-4">
+                <div class="p-1.5 bg-emerald-100 text-emerald-700 rounded-lg">
+                    <i data-lucide="award" class="w-4 h-4"></i>
+                </div>
+                <h2 class="text-base font-bold text-slate-800 font-display">Top Selling Products</h2>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="text-slate-400 font-semibold border-b border-slate-100">
+                            <th class="pb-3">Product Name</th>
+                            <th class="pb-3 text-center">Units Sold</th>
+                            <th class="pb-3 text-right">Revenue Generated</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for item in top_selling %}
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-3 font-bold text-slate-800">{{ item.name }}</td>
+                                <td class="py-3 text-center font-bold text-purple-700">{{ item.totalQty }}</td>
+                                <td class="py-3 text-right font-extrabold text-slate-900">₱ {{ item.totalRevenue|number_format(2, '.', ',') }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="3" class="py-6 text-center text-slate-400">No sales data accumulated yet.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Low Stock Items Reorder List -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-1.5 bg-rose-100 text-rose-600 rounded-lg">
+                        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                    </div>
+                    <h2 class="text-base font-bold text-slate-800 font-display">Reorder Recommendations</h2>
+                </div>
+                <a href="{{ path('app_inventory_stock_in') }}" class="text-xs font-semibold text-purple-600 hover:text-purple-700">
+                    Restock All
+                </a>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="text-slate-400 font-semibold border-b border-slate-100">
+                            <th class="pb-3">Item</th>
+                            <th class="pb-3 text-center">Current</th>
+                            <th class="pb-3 text-center">Minimum</th>
+                            <th class="pb-3 text-right">Suggested Order</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for p in low_stock_products %}
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-3 font-bold text-slate-800">{{ p.name }}</td>
+                                <td class="py-3 text-center font-bold text-rose-600">{{ p.quantity }}</td>
+                                <td class="py-3 text-center text-slate-500">{{ p.minStock }}</td>
+                                <td class="py-3 text-right font-bold text-purple-700">
+                                    +{{ (p.minStock * 2) - p.quantity }} units
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="py-6 text-center text-slate-400">All inventory levels are healthy!</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,220 @@
+{% extends 'layout/dashboard_layout.html.twig' %}
+
+{% block title %}Notifications Log - BaiStock Storage Management{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold font-display text-slate-800 tracking-tight">Notifications Log</h1>
+            <p class="text-slate-500 text-sm">Review all recorded inventory warnings, shipment updates, and store alerts.</p>
+        </div>
+
+        <div class="flex items-center gap-3 self-start sm:self-auto">
+            {% if unread_count > 0 %}
+                <form id="page-mark-all-form" method="post" action="{{ path('app_notifications_mark_all_read') }}" class="inline" onsubmit="document.getElementById('sidebar-notif-badge')?.remove(); document.getElementById('notif-badge')?.remove();">
+                    <input type="hidden" name="_token" value="{{ csrf_token('mark_all_notifications_read') }}">
+                    <button type="submit" class="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition-all cursor-pointer">
+                        <i data-lucide="check-check" class="w-4 h-4"></i>
+                        <span>Mark All as Read ({{ unread_count }})</span>
+                    </button>
+                </form>
+            {% else %}
+                <span class="py-2 px-3 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-emerald-200">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
+                    <span>All Caught Up</span>
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- Total Recorded -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="bell" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <span class="text-slate-400 text-xs font-semibold block uppercase">Total Recorded</span>
+                <span class="text-xl font-bold text-slate-800 font-display">{{ total_count }}</span>
+            </div>
+        </div>
+
+        <!-- Unread Alerts -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="alert-circle" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <span class="text-slate-400 text-xs font-semibold block uppercase">Unread</span>
+                <span class="text-xl font-bold text-rose-600 font-display">{{ unread_count }}</span>
+            </div>
+        </div>
+
+        <!-- Stock Warnings -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="boxes" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <span class="text-slate-400 text-xs font-semibold block uppercase">Stock Warnings</span>
+                <span class="text-xl font-bold text-amber-700 font-display">{{ stock_alerts_count }}</span>
+            </div>
+        </div>
+
+        <!-- Shipments -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="truck" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <span class="text-slate-400 text-xs font-semibold block uppercase">Pending Shipments</span>
+                <span class="text-xl font-bold text-blue-700 font-display">{{ delivery_alerts_count }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+        <a href="{{ path('app_notifications_index', {'filter': 'all'}) }}"
+           class="px-4 py-2 rounded-xl font-semibold transition-all whitespace-nowrap {{ current_filter == 'all' ? 'bg-[#7C3AED] text-white shadow-md shadow-purple-600/30' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50' }}">
+            All ({{ total_count }})
+        </a>
+        <a href="{{ path('app_notifications_index', {'filter': 'unread'}) }}"
+           class="px-4 py-2 rounded-xl font-semibold transition-all whitespace-nowrap {{ current_filter == 'unread' ? 'bg-[#7C3AED] text-white shadow-md shadow-purple-600/30' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50' }}">
+            Unread ({{ unread_count }})
+        </a>
+        <a href="{{ path('app_notifications_index', {'filter': 'read'}) }}"
+           class="px-4 py-2 rounded-xl font-semibold transition-all whitespace-nowrap {{ current_filter == 'read' ? 'bg-[#7C3AED] text-white shadow-md shadow-purple-600/30' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50' }}">
+            Read ({{ total_count - unread_count }})
+        </a>
+        <a href="{{ path('app_notifications_index', {'filter': 'stock'}) }}"
+           class="px-4 py-2 rounded-xl font-semibold transition-all whitespace-nowrap {{ current_filter == 'stock' ? 'bg-[#7C3AED] text-white shadow-md shadow-purple-600/30' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50' }}">
+            Stock Warnings
+        </a>
+        <a href="{{ path('app_notifications_index', {'filter': 'delivery'}) }}"
+           class="px-4 py-2 rounded-xl font-semibold transition-all whitespace-nowrap {{ current_filter == 'delivery' ? 'bg-[#7C3AED] text-white shadow-md shadow-purple-600/30' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50' }}">
+            Deliveries
+        </a>
+    </div>
+
+    <!-- Notifications Table Card -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead>
+                    <tr class="bg-slate-50/80 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <th class="py-3.5 px-6">Status</th>
+                        <th class="py-3.5 px-4">Type</th>
+                        <th class="py-3.5 px-4">Notification Details</th>
+                        <th class="py-3.5 px-4">Date & Time</th>
+                        <th class="py-3.5 px-6 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                    {% for n in notifications %}
+                        <tr class="hover:bg-purple-50/30 transition-colors {{ not n.isRead ? 'bg-purple-50/20' : '' }}">
+                            <!-- Read / Unread Indicator -->
+                            <td class="py-4 px-6 whitespace-nowrap">
+                                {% if not n.isRead %}
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                        <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                                        <span>Unread</span>
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-500">
+                                        <i data-lucide="check" class="w-3 h-3 text-slate-400"></i>
+                                        <span>Read</span>
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Type Badge -->
+                            <td class="py-4 px-4 whitespace-nowrap">
+                                {% if n.type == 'stock_out' %}
+                                    <span class="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-100/80 border border-rose-200 px-2.5 py-1 rounded-lg text-[11px]">
+                                        <i data-lucide="alert-octagon" class="w-3 h-3"></i> Out of Stock
+                                    </span>
+                                {% elseif n.type == 'stock_low' %}
+                                    <span class="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-100/80 border border-amber-200 px-2.5 py-1 rounded-lg text-[11px]">
+                                        <i data-lucide="alert-triangle" class="w-3 h-3"></i> Low Stock
+                                    </span>
+                                {% elseif n.type == 'delivery' %}
+                                    <span class="inline-flex items-center gap-1 font-bold text-blue-700 bg-blue-100/80 border border-blue-200 px-2.5 py-1 rounded-lg text-[11px]">
+                                        <i data-lucide="truck" class="w-3 h-3"></i> Delivery
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center gap-1 font-bold text-purple-700 bg-purple-100/80 border border-purple-200 px-2.5 py-1 rounded-lg text-[11px]">
+                                        <i data-lucide="bell" class="w-3 h-3"></i> Notice
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Title & Message -->
+                            <td class="py-4 px-4 max-w-md">
+                                <div class="font-bold text-slate-800 text-sm mb-0.5">{{ n.title }}</div>
+                                <div class="text-slate-500 leading-relaxed">{{ n.message }}</div>
+                            </td>
+
+                            <!-- Date & Time -->
+                            <td class="py-4 px-4 text-slate-500 whitespace-nowrap">
+                                {{ n.createdAt|date('M d, Y') }}<br>
+                                <span class="text-[10px] text-slate-400">{{ n.createdAt|date('h:i A') }}</span>
+                            </td>
+
+                            <!-- Actions -->
+                            <td class="py-4 px-6 text-right whitespace-nowrap">
+                                <div class="inline-flex items-center gap-2">
+                                    {% if n.actionUrl %}
+                                        <a href="{{ n.actionUrl }}" class="py-1 px-2.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition-colors">
+                                            <span>{{ n.actionText ?: 'View' }}</span>
+                                            <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                                        </a>
+                                    {% endif %}
+
+                                    {% if not n.isRead %}
+                                        <form method="post" action="{{ path('app_notifications_mark_read', {'id': n.id}) }}" class="inline">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('mark_read_' ~ n.id) }}">
+                                            <button type="submit" class="py-1 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition-colors" title="Mark as read">
+                                                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                                <span>Mark Read</span>
+                                            </button>
+                                        </form>
+                                    {% endif %}
+
+                                    <form method="post" action="{{ path('app_notifications_delete', {'id': n.id}) }}" class="inline" onsubmit="return confirm('Remove this notification?');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete_notif_' ~ n.id) }}">
+                                        <button type="submit" class="p-1 text-slate-400 hover:text-rose-600 rounded-lg transition-colors" title="Delete">
+                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="py-12 text-center text-slate-400">
+                                <div class="flex flex-col items-center justify-center">
+                                    <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
+                                        <i data-lucide="bell-off" class="w-6 h-6"></i>
+                                    </div>
+                                    <p class="font-bold text-slate-700">No notifications found.</p>
+                                    <p class="text-xs text-slate-400 mt-1">
+                                        {% if current_filter == 'unread' %}
+                                            You are all caught up! No unread notifications.
+                                        {% else %}
+                                            System notifications will be recorded here automatically.
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
