@@ -22,8 +22,12 @@ services:
     environment:
       PMA_HOST: database
       PMA_PORT: 3306
+      PMA_USER: baistock_user
+      PMA_PASSWORD: baistock_pass
+      PMA_PMADB: phpmyadmin
+      PMA_ABSOLUTE_URI: http://localhost:8085/
     ports:
-      - "8082:80"
+      - "8085:80"
     depends_on:
       - database
     networks:
